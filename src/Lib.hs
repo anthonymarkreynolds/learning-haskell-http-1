@@ -12,10 +12,6 @@ import           Data.Aeson.Types          (Value)
 import qualified Data.ByteString.Char8      as B8
 import qualified Data.ByteString.Lazy.Char8 as L8  
 
-
--- decodeResponseBody :: Response ByteString -> Maybe Value
--- decodeResponseBody response = decode $ fromStrict $ getResponseBody response
-
 printReponseBody :: Response L8.ByteString -> IO ()
 printReponseBody response = do
     putStrLn "Response Body:"
@@ -32,13 +28,23 @@ printResponse headers = do
 
 someFunc :: IO ()
 someFunc = do
-    request <- parseRequest "http://httpbin.org/get"
-    response <- httpLBS request
-    putStrLn $ "The status code was: " ++ show (getResponseStatusCode response)
-    let responseType = lookup hContentType (getResponseHeaders response)
-    putStrLn $ "The response type is: " ++ show responseType
-    -- let responseBody = getResponseBody response
-    
-    printResponse (getResponseHeaders response)
-    -- putStrLn $ "Response Body: " ++ show (decode responseBody :: Maybe Value)
-    printReponseBody response
+    putStrLn "Enter a URL:"
+    url <- getLine
+    case parseRequest url of
+        Just _ -> do
+            request <- parseRequest url
+            response <- httpLBS request
+            putStrLn $ "The status code was: " ++ show (getResponseStatusCode response)
+            let responseType = lookup hContentType (getResponseHeaders response)
+
+            putStrLn $ "The response type is: " ++ show responseType
+            printResponse (getResponseHeaders response)
+            if responseType == Just (B8.pack "application/json")
+                then do
+                  putStrLn "The response type is JSON"
+                  printReponseBody response
+                else print $ show (getResponseBody response)
+            
+        Nothing -> do
+            putStrLn $ "Invalid URL: " ++ url
+            someFunc
