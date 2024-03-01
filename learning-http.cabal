@@ -39,6 +39,8 @@ library
     , bytestring
     , http-conduit
     , http-types
+    , monad-logger
+    , text
   default-language: Haskell2010
 
 executable learning-http-exe
@@ -57,6 +59,8 @@ executable learning-http-exe
     , http-conduit
     , http-types
     , learning-http
+    , monad-logger
+    , text
   default-language: Haskell2010
 
 test-suite learning-http-test
@@ -76,4 +80,6 @@ test-suite learning-http-test
     , http-conduit
     , http-types
     , learning-http
+    , monad-logger
+    , text
   default-language: Haskell2010

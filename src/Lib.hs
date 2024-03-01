@@ -1,3 +1,6 @@
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell #-}
+
 module Lib
     ( someFunc
     ) where
@@ -10,14 +13,22 @@ import           Network.HTTP.Types.Header (ResponseHeaders, hContentType)
 import           Data.Aeson                (decode)
 import           Data.Aeson.Types          (Value)
 import qualified Data.ByteString.Char8      as B8
-import qualified Data.ByteString.Lazy.Char8 as L8  
+import qualified Data.ByteString.Lazy.Char8 as L8
+import Control.Monad.IO.Class (liftIO)
+import Control.Monad.Logger (LoggingT, logInfo)
+import qualified Data.Text as T
 
-printReponseBody :: Response L8.ByteString -> IO ()
+-- | Show a value as Text
+tshow :: Show a => a -> T.Text
+tshow = T.pack . show    
+
+printReponseBody :: Response L8.ByteString -> LoggingT IO ()
 printReponseBody response = do
-    putStrLn "Response Body:"
+    $(logInfo) $ "Response Body (from logger): " <> tshow responseBody
+    liftIO $ putStrLn "Response Body:"
     case decode responseBody :: Maybe Value of
-        Just v  -> print v
-        Nothing -> putStrLn "Failed to decode response body"
+        Just v  -> liftIO $ print v
+        Nothing -> liftIO $ putStrLn "Failed to decode response body"
     where
         responseBody = getResponseBody response
 
@@ -26,25 +37,23 @@ printResponse headers = do
     putStrLn "Response Headers:"
     mapM_ print headers
 
-someFunc :: IO ()
+someFunc :: LoggingT IO ()
 someFunc = do
-    putStrLn "Enter a URL:"
-    url <- getLine
+    $(logInfo) "Enter a URL:"
+    url <- liftIO getLine
     case parseRequest url of
-        Just _ -> do
-            request <- parseRequest url
+        Just request -> do
             response <- httpLBS request
-            putStrLn $ "The status code was: " ++ show (getResponseStatusCode response)
+            $(logInfo) $ "The status code was: " <> tshow (getResponseStatusCode response)
             let responseType = lookup hContentType (getResponseHeaders response)
 
-            putStrLn $ "The response type is: " ++ show responseType
-            printResponse (getResponseHeaders response)
+            $(logInfo) $ "The response type is: " <> tshow responseType
+            liftIO $ printResponse (getResponseHeaders response)
             if responseType == Just (B8.pack "application/json")
                 then do
-                  putStrLn "The response type is JSON"
-                  printReponseBody response
-                else print $ show (getResponseBody response)
-            
+                    $(logInfo) "The response type is JSON"
+                    printReponseBody response
+                else liftIO $ print $ show (getResponseBody response)
         Nothing -> do
-            putStrLn $ "Invalid URL: " ++ url
+            $(logInfo) $ "Invalid Url: " <> T.pack url
             someFunc

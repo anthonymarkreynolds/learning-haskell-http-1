@@ -25,6 +25,8 @@ dependencies:
 - http-types
 - bytestring
 - aeson
+- monad-logger
+- text
 
 ghc-options:
 - -Wall
